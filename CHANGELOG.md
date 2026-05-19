@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.0.0...v1.1.0) (2026-05-19)
+
+### Features
+
+* add scripts/install.sh + curl-install for new hosts ([487e53e](https://github.com/sweatstudio75/gh-runner-image/commit/487e53e29736675ffaeae262f836eacd3248e61a))
+
 ## 1.0.0 (2026-05-19)
 
 ### Features
