@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+
+# Default to :latest-base; CI overrides with the exact base tag of the current build.
+ARG BASE_IMAGE=ghcr.io/sweatstudio75/gh-runner-image:latest-base
+FROM ${BASE_IMAGE}
+
+# Chrome stable for Lighthouse / Playwright Chromium / E2E jobs.
+RUN set -eux; \
+    apt-get update -qq; \
+    apt-get install -y --no-install-recommends \
+        wget gpg ca-certificates \
+        fonts-liberation libnss3 libxss1 libasound2 libxshmfence1 \
+        libgbm1 libdrm2 xdg-utils; \
+    wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb; \
+    apt-get install -y --no-install-recommends /tmp/chrome.deb; \
+    rm /tmp/chrome.deb; \
+    rm -rf /var/lib/apt/lists/*; \
+    google-chrome-stable --version
