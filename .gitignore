@@ -2,3 +2,7 @@
 *.swp
 .vscode/
 .idea/
+
+# Node (for semantic-release tooling)
+node_modules/
+*.log

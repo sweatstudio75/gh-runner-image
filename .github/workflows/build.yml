@@ -2,7 +2,6 @@ name: Build and push runner image
 
 on:
   push:
-    branches: [main]
     tags: ['v*.*.*']
   pull_request:
     branches: [main]
@@ -48,7 +47,6 @@ jobs:
           flavor: |
             suffix=-base,onlatest=true
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -92,7 +90,6 @@ jobs:
           flavor: |
             suffix=-chrome,onlatest=true
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
