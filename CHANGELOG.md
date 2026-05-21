@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.1.0...v1.2.0) (2026-05-21)
+
+### Features
+
+* bake Playwright browsers into the chrome image ([1d3be00](https://github.com/sweatstudio75/gh-runner-image/commit/1d3be00dbf8944a708f964e1bf0be4ef1c25fc10))
+
 ## [1.1.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.0.0...v1.1.0) (2026-05-19)
 
 ### Features
