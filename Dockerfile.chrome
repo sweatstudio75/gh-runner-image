@@ -35,3 +35,53 @@ RUN set -eux; \
       npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium; \
     chmod -R a+rX /opt/ms-playwright; \
     ls -1 /opt/ms-playwright
+
+# --- CI toolchain ----------------------------------------------------------
+# Bake the toolchain the sweatstudio CI used to set up on every run
+# (actions/setup-python, denoland/setup-deno, supabase/setup-cli, apt psql) so
+# jobs use the baked tools instead of re-downloading. Node 20 is already in the
+# base image. Versions MUST match what the workflows requested.
+ARG DENO_VERSION=v2.7.14
+ARG SUPABASE_VERSION=2.98.2
+ARG PYTHON_BUILD=20260510
+ARG PYTHON_VERSION=3.12.13
+
+# Base apt deps for the toolchain installs below.
+RUN set -eux; \
+    apt-get update -qq; \
+    apt-get install -y --no-install-recommends \
+        curl ca-certificates unzip postgresql-client; \
+    rm -rf /var/lib/apt/lists/*
+
+# Python 3.12 (base ships 3.8; CI requests 3.12). Use the python-build-standalone
+# prebuilt CPython (same one uv / actions/setup-python use) instead of deadsnakes
+# (no 3.12-venv/-dev on focal). Self-contained at /opt/python, pip+venv included.
+# Exposed as python/python3/pip via /usr/local/bin so jobs get 3.12 first in PATH
+# without shadowing the system /usr/bin/python3 that apt depends on.
+RUN set -eux; \
+    curl -fsSL "https://github.com/astral-sh/python-build-standalone/releases/download/${PYTHON_BUILD}/cpython-${PYTHON_VERSION}+${PYTHON_BUILD}-x86_64-unknown-linux-gnu-install_only.tar.gz" -o /tmp/python.tar.gz; \
+    tar -xzf /tmp/python.tar.gz -C /opt; \
+    rm /tmp/python.tar.gz; \
+    ln -sf /opt/python/bin/python3.12 /usr/local/bin/python3; \
+    ln -sf /opt/python/bin/python3.12 /usr/local/bin/python; \
+    printf '#!/bin/sh\nexec /opt/python/bin/python3.12 -m pip "$@"\n' > /usr/local/bin/pip; \
+    printf '#!/bin/sh\nexec /opt/python/bin/python3.12 -m pip "$@"\n' > /usr/local/bin/pip3; \
+    chmod +x /usr/local/bin/pip /usr/local/bin/pip3; \
+    python --version; python3 --version; pip --version; psql --version
+
+# Deno (pinned 2.x — matches workflows' `deno-version: v2.x`).
+RUN set -eux; \
+    curl -fsSL "https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip" -o /tmp/deno.zip; \
+    unzip -o /tmp/deno.zip -d /usr/local/bin; \
+    rm /tmp/deno.zip; \
+    chmod +x /usr/local/bin/deno; \
+    deno --version
+
+# Supabase CLI (pinned to match workflows' supabase/setup-cli version).
+RUN set -eux; \
+    curl -fsSL "https://github.com/supabase/cli/releases/download/v${SUPABASE_VERSION}/supabase_${SUPABASE_VERSION}_linux_amd64.deb" -o /tmp/supabase.deb; \
+    apt-get update -qq; \
+    apt-get install -y --no-install-recommends /tmp/supabase.deb; \
+    rm /tmp/supabase.deb; \
+    rm -rf /var/lib/apt/lists/*; \
+    supabase --version

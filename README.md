@@ -11,7 +11,7 @@ Two variants are published on every semantic-release tag (`v*.*.*`):
 | Tag | Contents |
 |---|---|
 | `ghcr.io/sweatstudio75/gh-runner-image:1-base` | Runner + Node 20 + npm + corepack (rolling v1.x — **recommended**) |
-| `ghcr.io/sweatstudio75/gh-runner-image:1-chrome` | base + Google Chrome stable (for Lighthouse / Playwright) |
+| `ghcr.io/sweatstudio75/gh-runner-image:1-chrome` | base + Google Chrome + the full CI toolchain baked: Playwright browsers (`/opt/ms-playwright`), Python 3.12 (`python`/`pip`), Deno, Supabase CLI, `psql`. Jobs use these instead of `setup-*`/runtime downloads. |
 | `ghcr.io/sweatstudio75/gh-runner-image:latest-base` | Follows the highest semver across all majors (may jump v2.x, v3.x…) |
 | `ghcr.io/sweatstudio75/gh-runner-image:1.0-base` | Rolling minor (v1.0.x) |
 | `ghcr.io/sweatstudio75/gh-runner-image:1.0.0-base` | Immutable pin |
