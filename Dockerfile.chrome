@@ -16,3 +16,22 @@ RUN set -eux; \
     rm /tmp/chrome.deb; \
     rm -rf /var/lib/apt/lists/*; \
     google-chrome-stable --version
+
+# Bake Playwright browsers (chromium + chrome-headless-shell + ffmpeg) into the
+# image so E2E jobs never download them at runtime. The runtime download fails
+# on self-hosted runners without IPv6 egress: cdn.playwright.dev serves an
+# unroutable AAAA and the Playwright downloader does not fall back to IPv4
+# (-> connect ENETUNREACH, retried until the job times out). This image is
+# built on a GitHub-hosted (ubuntu-latest) host with working egress, so the
+# download succeeds once here and is frozen into the layer.
+#
+# PLAYWRIGHT_VERSION MUST stay in sync with `playwright==` in the sweatstudio
+# repo (tests/requirements.txt): same Playwright version -> same browser
+# revision. A drift makes jobs re-download at runtime (and fail on IPv6).
+ARG PLAYWRIGHT_VERSION=1.60.0
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN set -eux; \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
+      npx --yes "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium; \
+    chmod -R a+rX /opt/ms-playwright; \
+    ls -1 /opt/ms-playwright
