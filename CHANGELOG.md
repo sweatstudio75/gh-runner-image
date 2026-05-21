@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.2.0...v1.3.0) (2026-05-21)
+
+### Features
+
+* bake CI toolchain (Python 3.12, Deno, Supabase CLI, psql) ([a12d166](https://github.com/sweatstudio75/gh-runner-image/commit/a12d166d694cfb389db37b3dcc6f347f5fb66340))
+
 ## [1.2.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.1.0...v1.2.0) (2026-05-21)
 
 ### Features
