@@ -1,3 +1,19 @@
+## [2.0.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.3.0...v2.0.0) (2026-06-22)
+
+### ⚠ BREAKING CHANGES
+
+* The baked Node runtime is now Node 24 LTS, not Node 20.
+Any job that pinned to `actions/setup-node@v4 with node-version: 20` will
+override the baked runtime ; jobs that rely on the system Node (no
+`setup-node` step) now get Node 24. v1.x tags remain available for
+rollback (no removal — just no longer the recommended series).
+
+Refs: phase 64 RUNNER-01
+
+### Features
+
+* bump baseline Node 20 → Node 24 LTS ([2a086f5](https://github.com/sweatstudio75/gh-runner-image/commit/2a086f567f56eda7f14bddea686fd21a7b98a278)), closes [#241](https://github.com/sweatstudio75/gh-runner-image/issues/241) [#242](https://github.com/sweatstudio75/gh-runner-image/issues/242)
+
 ## [1.3.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.2.0...v1.3.0) (2026-05-21)
 
 ### Features
