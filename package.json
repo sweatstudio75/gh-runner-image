@@ -2,7 +2,7 @@
   "name": "gh-runner-image",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Custom GitHub Actions self-hosted runner image — Node 20 + optional Chrome",
+  "description": "Custom GitHub Actions self-hosted runner image — Node 24 LTS + optional Chrome",
   "repository": {
     "type": "git",
     "url": "https://github.com/sweatstudio75/gh-runner-image.git"
