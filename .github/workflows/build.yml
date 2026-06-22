@@ -16,7 +16,7 @@ env:
 
 jobs:
   base:
-    name: Build base (Node 20)
+    name: Build base (Node 24)
     # Build on the homelab self-hosted pool so image builds don't consume the
     # account's shared GitHub-hosted Actions minutes. The Playwright browser
     # download in Dockerfile.chrome works here because `docker build` RUN steps
