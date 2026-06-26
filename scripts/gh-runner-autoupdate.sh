@@ -13,7 +13,8 @@
 # Design (Gemini Gate 1 reviewed):
 #   - graceful: `docker stop --time` lets the GitHub runner finish its current
 #     job before exiting. --rm + Restart=always => systemd relaunches on the
-#     freshly-pulled image. No job is ever killed mid-flight; no API race.
+#     freshly-pulled image. No API race. A job is only cut if it outlasts
+#     STOP_GRACE (default 600s) — raise it if your jobs run longer.
 #   - quorum: never stop a runner if it would leave < MIN_ONLINE idle runners
 #     online across the fleet (prevents capacity-zero when every host updates
 #     at once). Best-effort — needs a GitHub PAT; degrades to per-host-safe.
@@ -120,16 +121,22 @@ main() {
   # Roll each local instance. `docker stop --time` is graceful: the GitHub runner
   # finishes any in-flight job before SIGKILL, then --rm + Restart=always brings
   # it back on the just-pulled image. No job is killed.
-  local n cname
+  # Stop instances CONCURRENTLY: total wall time = max(grace), not sum(grace).
+  # A busy runner finishes its in-flight job (up to STOP_GRACE) before SIGKILL;
+  # an idle one stops at once. Keep STOP_GRACE >= TimeoutStartSec of the unit.
+  local n cname pids=()
   for n in ${RUNNER_INSTANCES}; do
     cname="github-runner-${n}"
     if docker ps --format '{{.Names}}' | grep -qx "${cname}"; then
       log "graceful stop ${cname} (grace=${STOP_GRACE}s, finishes in-flight job)..."
-      docker stop --time "${STOP_GRACE}" "${cname}" >/dev/null 2>&1 || log "stop ${cname} returned non-zero (container may have already exited)"
+      ( docker stop --time "${STOP_GRACE}" "${cname}" >/dev/null 2>&1 \
+          || log "stop ${cname} non-zero (already exited?)" ) &
+      pids+=("$!")
     else
-      log "${cname} not running (between jobs) — systemd will pick up new image on next launch"
+      log "${cname} not running (between jobs) — systemd picks up new image on next launch"
     fi
   done
+  for p in "${pids[@]:-}"; do [ -n "${p}" ] && wait "${p}" 2>/dev/null || true; done
 
   # systemd (Restart=always) relaunches the container on the new image. Give it a beat.
   sleep 5

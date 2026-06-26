@@ -1,0 +1,32 @@
+[Unit]
+# Templated ephemeral runner: `systemctl enable --now github-runner@1.service`.
+# Container is github-runner-%i; the auto-updater (gh-runner-autoupdate) targets
+# that name. The image tag is the rolling-major chrome tag — the auto-updater
+# pulls new digests of it; this `docker run` always uses the local tag, so a
+# graceful `docker stop github-runner-%i` + Restart=always relaunches on it.
+Description=GitHub Actions Runner (ephemeral) #%i for sweatstudio75/sweatstudio
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+# Cap respawn so a broken image can't boot-loop and DDoS the host / GHCR / GitHub.
+StartLimitIntervalSec=600
+StartLimitBurst=20
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/github-runner.env
+ExecStartPre=-/usr/bin/docker rm -f github-runner-%i
+ExecStart=/usr/bin/docker run --rm --name github-runner-%i \
+  --network host \
+  --env-file /etc/github-runner.env \
+  -e RUNNER_NAME=gh-runner-%i \
+  -v /tmp/runner-work-%i:/tmp/runner-work-%i \
+  -e RUNNER_WORKDIR=/tmp/runner-work-%i \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  ghcr.io/sweatstudio75/gh-runner-image:2-chrome
+ExecStop=-/usr/bin/docker stop -t 30 github-runner-%i
+Restart=always
+RestartSec=5s
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
