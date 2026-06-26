@@ -106,7 +106,10 @@ tracked tag and rolls the runner onto it **without killing a running job**:
 
 - **graceful**: `docker stop --time 600` lets the GitHub runner finish its
   in-flight job before exiting; `--rm` + `Restart=always` relaunches it on the
-  freshly-pulled image. No API race, no lost job.
+  freshly-pulled image. No API race. A job is only ever interrupted if it runs
+  **longer than the 600s grace** (raise `STOP_GRACE` in
+  `/etc/gh-runner-autoupdate.env` if your jobs do). Instances are stopped
+  concurrently, so wall time is one grace window, not N.
 - **rolling / no capacity-zero**: per-host jitter + a fleet **quorum gate**
   (never the last idle runner standing — needs a PAT; otherwise per-host-safe).
 - **rollback-safe**: a failed pull leaves the old (working) image in place.
@@ -120,7 +123,11 @@ sudo ./scripts/install-autoupdate.sh --instances "1 2 3 4"  # a desktop running 
 ```
 
 `--instances` is the list of systemd template ids (`github-runner@<id>.service` →
-container `github-runner-<id>`). The installer prompts silently for the GitHub
+container `github-runner-<id>`, the template shipped at
+`systemd/github-runner@.service`). The auto-updater targets the `github-runner-<id>`
+container name — it does **not** manage the legacy single-runner
+`gh-runner-sweatstudio` container from `install.sh`; the deployed fleet uses the
+template. The installer prompts silently for the GitHub
 PAT (quorum check) and ntfy token. Run one tick on demand with
 `sudo /usr/local/bin/gh-runner-autoupdate.sh`; remove with
 `sudo ./scripts/install-autoupdate.sh --remove`.

@@ -75,17 +75,20 @@ install() {
   sudo install -m 644 "${HERE}/systemd/gh-runner-autoupdate.timer"   /etc/systemd/system/gh-runner-autoupdate.timer
 
   info "Writing ${ENV_FILE} (root:root 600)..."
+  # Secrets are single-quoted so a $ in a PAT/token is never shell-expanded.
+  # systemd EnvironmentFile parses KEY='value' literally (quotes stripped, no expansion).
+  local hn; hn="$(hostname -s)"
   sudo tee "${ENV_FILE}" >/dev/null <<EOF
 REPO=${repo}
 IMAGE=${image}
 RUNNER_INSTANCES=${instances}
 MIN_ONLINE=${min_online}
 STOP_GRACE=600
-GH_PAT=${gh_pat}
+GH_PAT='${gh_pat}'
 NTFY_URL=https://ntfy.jnsfr.com
 NTFY_TOPIC=homelab
-NTFY_TOKEN=${ntfy_token}
-AGENT_NAME=$(hostname -s)
+NTFY_TOKEN='${ntfy_token}'
+AGENT_NAME=${hn}
 SESSION=gh-runner-autoupdate
 EOF
   sudo chmod 600 "${ENV_FILE}"
