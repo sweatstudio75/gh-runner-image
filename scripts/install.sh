@@ -60,6 +60,66 @@ detect_arch() {
 }
 
 # -----------------------------------------------------------------------------
+# Docker IPAM hardening (host daemon)
+# -----------------------------------------------------------------------------
+#
+# Root cause (F-71-IPAM, 2026-06-26): the runner mounts the HOST docker socket
+# (-v /var/run/docker.sock) with --network host. There is NO docker-in-docker —
+# every `docker` / `supabase db start` a job runs hits the HOST daemon. That
+# daemon ships with no `default-address-pools`, so `supabase db start` leaking
+# orphan networks eventually exhausts the default pool -> empty-gateway alloc ->
+# `--add-host host.docker.internal:` -> "could not parse extra host IP".
+#
+# Fix: enlarge the pool on the HOST daemon (512 /24 networks, ~17x the default
+# effective ceiling). Idempotent merge into /etc/docker/daemon.json; only
+# restarts docker when the file actually changed. 10.200/10.201 do not collide
+# with the homelab 192.168.201.0/24 nor with Docker's default 172.17-172.31.
+
+configure_docker_ipam() {
+  local os="$1"
+  [ "${os}" = "linux" ] || { info "IPAM pool config: skipped (Linux-only)."; return 0; }
+  command -v jq >/dev/null 2>&1 || { warn "jq not found — skipping daemon IPAM config. Install jq, then re-run, or merge config/daemon.json by hand."; return 0; }
+
+  local pools='[{"base":"10.200.0.0/16","size":24},{"base":"10.201.0.0/16","size":24}]'
+  local cur="/etc/docker/daemon.json"
+  local tmp; tmp="$(mktemp)"
+
+  # Start from the existing daemon.json (or {}), set default-address-pools.
+  if sudo test -f "${cur}"; then
+    sudo cat "${cur}" | jq --argjson p "${pools}" '. + {"default-address-pools": $p}' > "${tmp}" 2>/dev/null \
+      || { warn "Existing ${cur} is not valid JSON — refusing to clobber. Merge config/daemon.json by hand."; rm -f "${tmp}"; return 0; }
+  else
+    # No existing daemon.json: write ONLY the IPAM pools. Don't force a
+    # storage-driver — let Docker keep its host default (overlay2 on most
+    # hosts; fuse-overlayfs only where the host already chose it).
+    jq -n --argjson p "${pools}" '{"default-address-pools":$p}' > "${tmp}"
+  fi
+
+  # No-op if already identical (idempotent: no needless docker restart).
+  if sudo test -f "${cur}" && sudo cmp -s "${tmp}" "${cur}"; then
+    ok "Docker IPAM pools already configured — no change."
+    rm -f "${tmp}"; return 0
+  fi
+
+  info "Writing ${cur} with enlarged default-address-pools (512 /24 networks)..."
+  sudo install -d -m 755 /etc/docker
+  sudo install -m 644 "${tmp}" "${cur}"
+  rm -f "${tmp}"
+
+  # Restart docker to apply. Pools only take effect for networks created after
+  # the restart; existing networks keep their old subnets (fine). This bounces
+  # the host daemon — runners are ephemeral + Restart=always, they rejoin.
+  warn "Restarting docker to apply IPAM pools (host daemon bounce)."
+  sudo systemctl restart docker
+  sleep 3
+  if docker info --format '{{json .DefaultAddressPools}}' 2>/dev/null | grep -q '10.200'; then
+    ok "Docker IPAM pools active: $(docker info --format '{{json .DefaultAddressPools}}' 2>/dev/null)"
+  else
+    warn "Docker restarted but DefaultAddressPools not visible — check 'docker info'."
+  fi
+}
+
+# -----------------------------------------------------------------------------
 # Status mode
 # -----------------------------------------------------------------------------
 
@@ -238,6 +298,9 @@ install() {
 
 install_docker() {
   local runner_name="$1" pat_value="$2" os="$3" arch="$4" with_chrome="$5"
+
+  # Durable IPAM fix on the host daemon (the one the job's docker socket hits).
+  configure_docker_ipam "${os}"
 
   # OS-specific env file location:
   # - Linux: /etc/gh-runner-sweatstudio/ (root:root 600, read by systemd)

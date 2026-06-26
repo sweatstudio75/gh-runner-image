@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll GHCR for a new runner image every 15min (jittered)
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=15min
+# Spread ticks across hosts so the fleet never updates in lockstep (capacity-zero guard).
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
