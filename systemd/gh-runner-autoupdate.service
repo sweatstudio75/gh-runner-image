@@ -1,0 +1,11 @@
+[Unit]
+Description=Auto-update self-hosted GitHub Actions runner image (idle-safe, rolling)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/gh-runner-autoupdate.env
+ExecStart=/usr/local/bin/gh-runner-autoupdate.sh
+# A long graceful stop of a busy runner can take a while; don't let systemd kill us.
+TimeoutStartSec=1200
