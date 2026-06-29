@@ -1,3 +1,13 @@
+## [2.1.0](https://github.com/sweatstudio75/gh-runner-image/compare/v2.0.0...v2.1.0) (2026-06-29)
+
+### Features
+
+* **ci:** idle-safe rolling auto-update for the runner image ([7827a0f](https://github.com/sweatstudio75/gh-runner-image/commit/7827a0ff19a65fc28eb79c9e2b962005581f49c2))
+
+### Bug Fixes
+
+* **docker:** configure host daemon default-address-pools to stop IPAM exhaustion ([e576b70](https://github.com/sweatstudio75/gh-runner-image/commit/e576b701ca8ce04cb35b3ecc03ca61cd95a5d894))
+
 ## [2.0.0](https://github.com/sweatstudio75/gh-runner-image/compare/v1.3.0...v2.0.0) (2026-06-22)
 
 ### ⚠ BREAKING CHANGES
