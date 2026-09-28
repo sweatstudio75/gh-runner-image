@@ -85,6 +85,19 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # `pull: true` est CE QUI FAIT LA RECONSTRUCTION. Sans lui,
+          # build-push-action vaut `pull: false` : le `FROM
+          # myoung34/github-runner:latest` du Dockerfile n'est JAMAIS
+          # reevalue, il sort du cache. Avec un Dockerfile inchange et
+          # `cache-from: type=gha`, la construction est un succes de cache
+          # integral et republie une image identique au bit pres.
+          #
+          # Mesure du 2026-09-28 : un run « Build and push » VERT a 16h20 a
+          # laisse `:2-chrome` annoncer `created: 2026-06-29T16:31:34Z`. La
+          # reconstruction hebdomadaire ajoutee juste avant aurait donc tourne
+          # chaque lundi sans rien changer — et la depreciation du runner
+          # 2.335.1 serait restee en place.
+          pull: true
           cache-from: type=gha,scope=base
           cache-to: type=gha,scope=base,mode=max
 
@@ -146,5 +159,9 @@ jobs:
             BASE_IMAGE=${{ env.IMAGE_NAME }}:${{ needs.base.outputs.sha-tag }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Meme raison : `BASE_IMAGE` pointe le tag SHA que le job `base`
+          # vient de publier, mais sans `pull: true` une couche de base
+          # homonyme deja en cache serait reutilisee.
+          pull: true
           cache-from: type=gha,scope=chrome
           cache-to: type=gha,scope=chrome,mode=max
