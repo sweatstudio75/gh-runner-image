@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/sweatstudio75/gh-runner-image/compare/v2.1.0...v2.1.1) (2026-09-28)
+
+### Bug Fixes
+
+* **ci:** construire l'image sur un runner heberge, pas sur ceux qu'elle fabrique ([eed88b7](https://github.com/sweatstudio75/gh-runner-image/commit/eed88b7abacd208befac8a6ebe5f646fa3e4d304))
+* **ci:** reevaluer l'image de base, sinon la reconstruction ne reconstruit rien ([676bcc7](https://github.com/sweatstudio75/gh-runner-image/commit/676bcc7634107739565fc4c69d29cdeac7ee9b59))
+
 ## [2.1.0](https://github.com/sweatstudio75/gh-runner-image/compare/v2.0.0...v2.1.0) (2026-06-29)
 
 ### Features
