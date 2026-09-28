@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Reconstruction hebdomadaire. Sans elle, l'image ne se reconstruisait QUE
+  # sur un tag ou une main levee : la derniere datait du 2026-06-29, elle
+  # portait le runner 2.335.1, et le service d'auto-update du poste a passe
+  # trois mois a tirer fidelement un digest que plus rien ne rafraichissait.
+  # `docker pull` n'est pas `docker build` — le premier ne repare jamais une
+  # depreciation en amont. Lundi 04:17 UTC, decale pour ne pas tomber sur
+  # l'heure ronde que tout le monde demande.
+  schedule:
+    - cron: '17 4 * * 1'
 
 permissions:
   contents: read
@@ -17,12 +26,23 @@ env:
 jobs:
   base:
     name: Build base (Node 24)
-    # Build on the homelab self-hosted pool so image builds don't consume the
-    # account's shared GitHub-hosted Actions minutes. The Playwright browser
-    # download in Dockerfile.chrome works here because `docker build` RUN steps
-    # use the IPv4-only docker bridge network (not the host's broken-IPv6
-    # --network host path that breaks E2E *jobs*).
-    runs-on: [self-hosted, homelab-sweatstudio]
+    # Construit sur un runner HEBERGE, delibérément — voir la panne du
+    # 2026-09-28. L'ancien commentaire justifiait le pool auto-heberge par
+    # « so image builds don't consume the account's shared GitHub-hosted
+    # Actions minutes » : ce depot est PUBLIC, donc ces minutes sont
+    # gratuites et illimitees. La raison n'en etait pas une.
+    #
+    # Ce qu'elle coutait, en revanche : un VERROU CIRCULAIRE. Le 2026-09-28,
+    # GitHub a coupe le runner 2.335.1 (« is deprecated and cannot receive
+    # messages ») ; chaque runner s'est desenregistre tout seul au demarrage,
+    # `actions/runners` est tombe a total_count=0, et la seule façon de
+    # reconstruire l'image portant un runner recent etait... un job sur ces
+    # memes runners. La reparation avait besoin de ce qu'elle reparait.
+    #
+    # Le telechargement Playwright de Dockerfile.chrome n'a plus besoin de la
+    # ruse du bridge IPv4 : elle compensait l'IPv6 casse de l'hote homelab,
+    # absent ici.
+    runs-on: ubuntu-latest
     outputs:
       sha-tag: ${{ steps.compute.outputs.sha_tag }}
     steps:
@@ -72,12 +92,23 @@ jobs:
     name: Build chrome (base + Chrome)
     needs: base
     if: github.event_name != 'pull_request'
-    # Build on the homelab self-hosted pool so image builds don't consume the
-    # account's shared GitHub-hosted Actions minutes. The Playwright browser
-    # download in Dockerfile.chrome works here because `docker build` RUN steps
-    # use the IPv4-only docker bridge network (not the host's broken-IPv6
-    # --network host path that breaks E2E *jobs*).
-    runs-on: [self-hosted, homelab-sweatstudio]
+    # Construit sur un runner HEBERGE, delibérément — voir la panne du
+    # 2026-09-28. L'ancien commentaire justifiait le pool auto-heberge par
+    # « so image builds don't consume the account's shared GitHub-hosted
+    # Actions minutes » : ce depot est PUBLIC, donc ces minutes sont
+    # gratuites et illimitees. La raison n'en etait pas une.
+    #
+    # Ce qu'elle coutait, en revanche : un VERROU CIRCULAIRE. Le 2026-09-28,
+    # GitHub a coupe le runner 2.335.1 (« is deprecated and cannot receive
+    # messages ») ; chaque runner s'est desenregistre tout seul au demarrage,
+    # `actions/runners` est tombe a total_count=0, et la seule façon de
+    # reconstruire l'image portant un runner recent etait... un job sur ces
+    # memes runners. La reparation avait besoin de ce qu'elle reparait.
+    #
+    # Le telechargement Playwright de Dockerfile.chrome n'a plus besoin de la
+    # ruse du bridge IPv4 : elle compensait l'IPv6 casse de l'hote homelab,
+    # absent ici.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
